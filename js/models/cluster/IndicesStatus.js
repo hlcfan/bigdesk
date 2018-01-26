@@ -15,30 +15,30 @@
 */
 
 /**
- * REST end point: _status
- * @see <a href="http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-status.html">indices status</a>
+ * REST end point: _stats
+ * @see <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-stats.html">indices stats</a>
  */
 
 var IndicesStatusTimestamp = Backbone.Model;
 
 var IndicesStatus = Backbone.Collection.extend({
 
-    model: IndicesStatusTimestamp,
+  model: IndicesStatusTimestamp,
 
-    url: function() {
-        return '/_status';
-    },
+  url: function() {
+    return '/_stats';
+  },
 
-    parse: function(data) {
-        // add key
-        data.id = new Date().getTime();
+  parse: function(data) {
+    // add key
+    data.id = new Date().getTime();
 		if (data.indices) {
 			for (var i in data.indices) {
 				if (data.indices.hasOwnProperty(i)) {
 					// drop unused data about index
 					delete data.indices[i].docs;
 					delete data.indices[i].flush;
-					delete data.indices[i].index;
+					delete data.indices[i].indexing;
 					delete data.indices[i].merges;
 					delete data.indices[i].refresh;
 					delete data.indices[i].translog;
@@ -70,28 +70,28 @@ var IndicesStatus = Backbone.Collection.extend({
     },
 
     add: function(models, options) {
-        delete options.silent;
-        if (options && options.now && options.storeSize) {
-            var iterator = function(indicesStatusTimestamp) {
-                return !(indicesStatusTimestamp.id < (options.now - options.storeSize));
-            };
+      delete options.silent;
+      if (options && options.now && options.storeSize) {
+          var iterator = function(indicesStatusTimestamp) {
+              return !(indicesStatusTimestamp.id < (options.now - options.storeSize));
+          };
 
-            var rejected = this.reject(iterator);
-            if (rejected.length > 0) {
-                this.remove(rejected, options);
-            }
-        }
-        var parentCall = Backbone.Collection.prototype.add.call(this, models, options);
+          var rejected = this.reject(iterator);
+          if (rejected.length > 0) {
+              this.remove(rejected, options);
+          }
+      }
+      var parentCall = Backbone.Collection.prototype.add.call(this, models, options);
 
-        // custom trigger: collection has been updated
-        this.trigger("indicesStatusUpdated", {});
+      // custom trigger: collection has been updated
+      this.trigger("indicesStatusUpdated", {});
 
-        return parentCall;
+      return parentCall;
     },
 
     // make sure models are ordered by time
     comparator: function(model) {
-        return model.id;
+      return model.id;
     }
 
 });
