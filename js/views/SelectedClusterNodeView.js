@@ -362,15 +362,13 @@ var SelectedClusterNodeView = Backbone.View.extend({
                     _.defer(function(){
                         // sigar & AWS check
                         if (stats_the_latest && stats_the_latest.node && stats_the_latest.node.os && stats_the_latest.node.os.cpu) {
+                            var os_cpu_usage = bigdesk_charts.osCpu.series1(stats);
+                            var os_cpu_idle = bigdesk_charts.osCpu.series2(stats);
 
-                            var os_cpu_sys = bigdesk_charts.osCpu.series1(stats);
-                            var os_cpu_user = bigdesk_charts.osCpu.series2(stats);
-                            var os_cpu_idle = bigdesk_charts.osCpu.series3(stats);
+                            try { chart_osCpu.animate(animatedCharts).update(os_cpu_usage, os_cpu_idle); } catch (ignore) {}
 
-                            try { chart_osCpu.animate(animatedCharts).update(os_cpu_sys, os_cpu_user, os_cpu_idle); } catch (ignore) {}
-
-                            $("#os_cpu_user").text(stats_the_latest.node.os.cpu.user + "%");
-                            $("#os_cpu_sys").text(stats_the_latest.node.os.cpu.sys + "%");
+                            $("#os_cpu_user").text(stats_the_latest.node.os.cpu.percent + "%");
+                            $("#os_cpu_sys").text("No cpu sys usage");
                         } else {
                             chart_osCpu = bigdesk_charts.not_available.chart(chart_osCpu.svg());
                             $("#os_cpu_user").text("n/a");
@@ -388,7 +386,9 @@ var SelectedClusterNodeView = Backbone.View.extend({
                             var os_mem_actual_used = bigdesk_charts.osMem.series1(stats);
                             var os_mem_actual_free = bigdesk_charts.osMem.series2(stats);
 
-                            try { chart_osMem.animate(animatedCharts).update(os_mem_actual_used, os_mem_actual_free); } catch (ignore) {}
+                            try {
+                              chart_osMem.animate(animatedCharts).update(os_mem_actual_used, os_mem_actual_free);
+                            } catch (ignore) {}
 
                             $("#os_mem_free").text(stats_the_latest.node.os.mem.actual_free);
                             $("#os_mem_used").text(stats_the_latest.node.os.mem.actual_used);
@@ -624,7 +624,7 @@ var SelectedClusterNodeView = Backbone.View.extend({
 
                             try { chart_indicesCacheEvictions.animate(animatedCharts).update(indices_cache_field_evictions, indices_cache_filter_evictions); } catch (ignore) {}
 
-                            $("#indices_filter_cache_evictions").text(stats_the_latest.node.indices.filter_cache.evictions);
+                            $("#indices_filter_cache_evictions").text(stats_the_latest.node.indices.query_cache.evictions);
                             $("#indices_field_cache_evictions").text(stats_the_latest.node.indices.fielddata.evictions);
 
                         }
@@ -650,24 +650,24 @@ var SelectedClusterNodeView = Backbone.View.extend({
 
                             var calcType = $("#process_time_avg_calc_type").find(":selected").val();
 
-                            var process_cpu_time_user_delta = bigdesk_charts.processCPU_time.series1(stats);
-                            var process_cpu_time_sys_delta = bigdesk_charts.processCPU_time.series2(stats);
+                            var process_cpu_time_total_delta = bigdesk_charts.processCPU_time.series1(stats);
+                        
 
-                            if (process_cpu_time_sys_delta.length > 1 && process_cpu_time_user_delta.length > 1) {
+                            if (process_cpu_time_total_delta.length > 1) {
 
                                 if (calcType == "weighted") {
-                                    normalizedDeltaToSeconds(process_cpu_time_user_delta);
-                                    normalizedDeltaToSeconds(process_cpu_time_sys_delta);
+                                    normalizedDeltaToSeconds(process_cpu_time_total_delta);
                                 } else {
-                                    delta(process_cpu_time_user_delta);
-                                    delta(process_cpu_time_sys_delta);
+                                    delta(process_cpu_time_total_delta);
                                 }
 
-                                try { chart_processCPU_time.animate(animatedCharts).update(process_cpu_time_user_delta, process_cpu_time_sys_delta); } catch (ignore) {}
+                                try {
+                                  chart_processCPU_time.animate(animatedCharts).update(process_cpu_time_total_delta);
+                                } catch (ignore) {}
                             }
 
-                            $("#process_cpu_time_sys").text(stats_the_latest.node.process.cpu.sys_in_millis + "ms");
-                            $("#process_cpu_time_user").text(stats_the_latest.node.process.cpu.user_in_millis + "ms");
+                            $("#process_cpu_time_sys").text(stats_the_latest.node.process.cpu.total_in_millis + "ms");
+                            $("#process_cpu_time_user").text("No user time, onlly total time");
                         } else {
                             chart_processCPU_time = bigdesk_charts.not_available.chart(chart_processCPU_time.svg());
                             $("#process_cpu_time_sys").text("n/a");
@@ -680,14 +680,11 @@ var SelectedClusterNodeView = Backbone.View.extend({
 
                     _.defer(function(){
                         var open_file_descriptors = bigdesk_charts.fileDescriptors.series1(stats);
-                        var max_file_descriptors = open_file_descriptors.slice(0).map(function(snapshot){
-                            return {
-                                timestamp: +snapshot.timestamp,
-                                value: +selectedNodeInfo.nodes[selectedNodeId].process.max_file_descriptors
-                            }
-                        });
+                        var max_file_descriptors = bigdesk_charts.fileDescriptors.series2(stats);
 
-                        try { chart_fileDescriptors.animate(animatedCharts).update(open_file_descriptors, max_file_descriptors); } catch (ignore) {}
+                        try {
+                          chart_fileDescriptors.animate(animatedCharts).update(open_file_descriptors, max_file_descriptors);
+                        } catch (ignore) {}
 
                         if (open_file_descriptors.length > 0) {
                             $("#open_file_descriptors").text(open_file_descriptors[open_file_descriptors.length-1].value);
@@ -739,15 +736,15 @@ var SelectedClusterNodeView = Backbone.View.extend({
                         // sigar & AWS check
                         if (stats_the_latest && stats_the_latest.node && stats_the_latest.node.process && stats_the_latest.node.process.mem) {
 
-                            var process_mem_share = bigdesk_charts.processMem.series1(stats);
-                            var process_mem_resident = bigdesk_charts.processMem.series2(stats);
-                            var process_mem_total_virtual = bigdesk_charts.processMem.series3(stats);
+                            var process_mem_total_virtual_in_bytes = bigdesk_charts.processMem.series1(stats);
 
-                            try { chart_processMem.animate(animatedCharts).update(process_mem_share, process_mem_resident, process_mem_total_virtual); } catch (ignore) {}
+                            try {
+                              chart_processMem.animate(animatedCharts).update(process_mem_total_virtual_in_bytes);
+                            } catch (ignore) {}
 
                             $("#process_mem_total_virtual").text(stats_the_latest.node.process.mem.total_virtual);
-                            $("#process_mem_resident").text(stats_the_latest.node.process.mem.resident);
-                            $("#process_mem_share").text(stats_the_latest.node.process.mem.share);
+                            $("#process_mem_resident").text("No resident");
+                            $("#process_mem_share").text("No share");
                         } else {
                             chart_processMem = bigdesk_charts.not_available.chart(chart_processMem.svg());
                             $("#process_mem_total_virtual").text("n/a");
