@@ -138,15 +138,12 @@ var templates = {
         ].join(""),
 
         process_MemTemplate: [
-            "<div>Total virtual: <span id='process_mem_total_virtual'>n/a</span></div>",
-            "<div>Resident: <span id='process_mem_resident'>n/a</span></div>",
-            "<div>Share: <span id='process_mem_share'>n/a</span></div>"
+            "<div>Total virtual: <span id='process_mem_total_virtual'>n/a</span></div>"
         ].join(""),
 
         process_CPU_timeTemplate: [
             "<!--#-->",
-            "<div>Sys total: <span id='process_cpu_time_sys'>n/a</span></div>",
-            "<div>User total: <span id='process_cpu_time_user'>n/a</span></div>"
+            "<div>Sys total: <span id='process_cpu_time_total'>n/a</span></div>"
         ].join(""),
 
         process_CPU_pctTemplate: [
@@ -156,8 +153,7 @@ var templates = {
 
         osCpu: [
             "<div>Total: 100%</div>",
-            "<div>User: <span id='os_cpu_user'>n/a</span></div>",
-            "<div>Sys: <span id='os_cpu_sys'>n/a</span></div>"
+            "<div>Usage: <span id='os_cpu_percent'>n/a</span></div>",
         ].join(""),
 
         osMem: [
@@ -171,9 +167,9 @@ var templates = {
         ].join(""),
 
         osLoad: [
-            "<div>2: <span id='os_load_2'>n/a</span></div>",
-            "<div>1: <span id='os_load_1'>n/a</span></div>",
-            "<div>0: <span id='os_load_0'>n/a</span></div>"
+            "<div><span id='indicator_1'>1m</span>: <span id='os_load_2'>n/a</span></div>",
+            "<div><span id='indicator_3'>5m</span>: <span id='os_load_1'>n/a</span></div>",
+            "<div><span id='indicator_4'>15m</span>: <span id='os_load_0'>n/a</span></div>"
         ].join(""),
 
         channelsTemplate: [

@@ -362,19 +362,15 @@ var SelectedClusterNodeView = Backbone.View.extend({
                     _.defer(function(){
                         // sigar & AWS check
                         if (stats_the_latest && stats_the_latest.node && stats_the_latest.node.os && stats_the_latest.node.os.cpu) {
+                            var os_cpu_usage = bigdesk_charts.osCpu.series1(stats);
+                            var os_cpu_idle = bigdesk_charts.osCpu.series2(stats);
 
-                            var os_cpu_sys = bigdesk_charts.osCpu.series1(stats);
-                            var os_cpu_user = bigdesk_charts.osCpu.series2(stats);
-                            var os_cpu_idle = bigdesk_charts.osCpu.series3(stats);
+                            try { chart_osCpu.animate(animatedCharts).update(os_cpu_usage, os_cpu_idle); } catch (ignore) {}
 
-                            try { chart_osCpu.animate(animatedCharts).update(os_cpu_sys, os_cpu_user, os_cpu_idle); } catch (ignore) {}
-
-                            $("#os_cpu_user").text(stats_the_latest.node.os.cpu.user + "%");
-                            $("#os_cpu_sys").text(stats_the_latest.node.os.cpu.sys + "%");
+                            $("#os_cpu_percent").text(stats_the_latest.node.os.cpu.percent + "%");
                         } else {
                             chart_osCpu = bigdesk_charts.not_available.chart(chart_osCpu.svg());
-                            $("#os_cpu_user").text("n/a");
-                            $("#os_cpu_sys").text("n/a");
+                            $("#os_cpu_percent").text("n/a");
                         }
                     });
 
@@ -388,10 +384,12 @@ var SelectedClusterNodeView = Backbone.View.extend({
                             var os_mem_actual_used = bigdesk_charts.osMem.series1(stats);
                             var os_mem_actual_free = bigdesk_charts.osMem.series2(stats);
 
-                            try { chart_osMem.animate(animatedCharts).update(os_mem_actual_used, os_mem_actual_free); } catch (ignore) {}
+                            try {
+                              chart_osMem.animate(animatedCharts).update(os_mem_actual_used, os_mem_actual_free);
+                            } catch (ignore) {}
 
-                            $("#os_mem_free").text(stats_the_latest.node.os.mem.actual_free);
-                            $("#os_mem_used").text(stats_the_latest.node.os.mem.actual_used);
+                            $("#os_mem_free").text(stats_the_latest.node.os.mem.free);
+                            $("#os_mem_used").text(stats_the_latest.node.os.mem.used);
                         } else {
                             chart_osMem = bigdesk_charts.not_available.chart(chart_osMem.svg());
                             $("#os_mem_free").text("n/a");
@@ -429,17 +427,24 @@ var SelectedClusterNodeView = Backbone.View.extend({
 
                     _.defer(function(){
                         // sigar & AWS check
-                        if (stats_the_latest && stats_the_latest.node && stats_the_latest.node.os && stats_the_latest.node.os.load_average) {
+                        if (stats_the_latest && stats_the_latest.node && stats_the_latest.node.os && stats_the_latest.node.os.cpu.load_average) {
 
                             var os_loadAvg_0 = bigdesk_charts.osLoadAvg.series1(stats);
                             var os_loadAvg_1 = bigdesk_charts.osLoadAvg.series2(stats);
                             var os_loadAvg_2 = bigdesk_charts.osLoadAvg.series3(stats);
+                            var loadAverage = stats_the_latest.node.os.cpu.load_average;
+                            var keys = Object.keys(loadAverage);
 
-                            try { chart_osLoadAvg.animate(animatedCharts).update(os_loadAvg_0, os_loadAvg_1, os_loadAvg_2); } catch (ignore) {}
+                            try {
+                              chart_osLoadAvg.animate(animatedCharts).update(os_loadAvg_0, os_loadAvg_1, os_loadAvg_2);
+                            } catch (ignore) {}
+                            $("#indicator_1").text(keys[0]);
+                            $("#indicator_2").text(keys[1]);
+                            $("#indicator_3").text(keys[2]);
 
-                            $("#os_load_0").text(stats_the_latest.node.os.load_average["0"]);
-                            $("#os_load_1").text(stats_the_latest.node.os.load_average["1"]);
-                            $("#os_load_2").text(stats_the_latest.node.os.load_average["2"]);
+                            $("#os_load_0").text(loadAverage[keys[0]]);
+                            $("#os_load_1").text(loadAverage[keys[1]]);
+                            $("#os_load_2").text(loadAverage[keys[2]]);
                         } else {
                             chart_osLoadAvg = bigdesk_charts.not_available.chart(chart_osLoadAvg.svg());
                             $("#os_load_0").text("n/a");
@@ -624,7 +629,7 @@ var SelectedClusterNodeView = Backbone.View.extend({
 
                             try { chart_indicesCacheEvictions.animate(animatedCharts).update(indices_cache_field_evictions, indices_cache_filter_evictions); } catch (ignore) {}
 
-                            $("#indices_filter_cache_evictions").text(stats_the_latest.node.indices.filter_cache.evictions);
+                            $("#indices_filter_cache_evictions").text(stats_the_latest.node.indices.query_cache.evictions);
                             $("#indices_field_cache_evictions").text(stats_the_latest.node.indices.fielddata.evictions);
 
                         }
@@ -650,28 +655,25 @@ var SelectedClusterNodeView = Backbone.View.extend({
 
                             var calcType = $("#process_time_avg_calc_type").find(":selected").val();
 
-                            var process_cpu_time_user_delta = bigdesk_charts.processCPU_time.series1(stats);
-                            var process_cpu_time_sys_delta = bigdesk_charts.processCPU_time.series2(stats);
+                            var process_cpu_time_total_delta = bigdesk_charts.processCPU_time.series1(stats);
 
-                            if (process_cpu_time_sys_delta.length > 1 && process_cpu_time_user_delta.length > 1) {
+                            if (process_cpu_time_total_delta.length > 1) {
 
                                 if (calcType == "weighted") {
-                                    normalizedDeltaToSeconds(process_cpu_time_user_delta);
-                                    normalizedDeltaToSeconds(process_cpu_time_sys_delta);
+                                    normalizedDeltaToSeconds(process_cpu_time_total_delta);
                                 } else {
-                                    delta(process_cpu_time_user_delta);
-                                    delta(process_cpu_time_sys_delta);
+                                    delta(process_cpu_time_total_delta);
                                 }
 
-                                try { chart_processCPU_time.animate(animatedCharts).update(process_cpu_time_user_delta, process_cpu_time_sys_delta); } catch (ignore) {}
+                                try {
+                                  chart_processCPU_time.animate(animatedCharts).update(process_cpu_time_total_delta);
+                                } catch (ignore) {}
                             }
 
-                            $("#process_cpu_time_sys").text(stats_the_latest.node.process.cpu.sys_in_millis + "ms");
-                            $("#process_cpu_time_user").text(stats_the_latest.node.process.cpu.user_in_millis + "ms");
+                            $("#process_cpu_time_total").text(stats_the_latest.node.process.cpu.total);
                         } else {
                             chart_processCPU_time = bigdesk_charts.not_available.chart(chart_processCPU_time.svg());
-                            $("#process_cpu_time_sys").text("n/a");
-                            $("#process_cpu_time_user").text("n/a");
+                            $("#process_cpu_time_total").text("n/a");
                         }
                     });
 
@@ -680,17 +682,14 @@ var SelectedClusterNodeView = Backbone.View.extend({
 
                     _.defer(function(){
                         var open_file_descriptors = bigdesk_charts.fileDescriptors.series1(stats);
-                        var max_file_descriptors = open_file_descriptors.slice(0).map(function(snapshot){
-                            return {
-                                timestamp: +snapshot.timestamp,
-                                value: +selectedNodeInfo.nodes[selectedNodeId].process.max_file_descriptors
-                            }
-                        });
+                        var max_file_descriptors = bigdesk_charts.fileDescriptors.series2(stats);
 
-                        try { chart_fileDescriptors.animate(animatedCharts).update(open_file_descriptors, max_file_descriptors); } catch (ignore) {}
+                        try {
+                          chart_fileDescriptors.animate(animatedCharts).update(open_file_descriptors, max_file_descriptors);
+                        } catch (ignore) {}
 
                         if (open_file_descriptors.length > 0) {
-                            $("#open_file_descriptors").text(open_file_descriptors[open_file_descriptors.length-1].value);
+                          $("#open_file_descriptors").text(open_file_descriptors[open_file_descriptors.length-1].value);
                         }
                     });
 
@@ -702,29 +701,30 @@ var SelectedClusterNodeView = Backbone.View.extend({
                         var _total_cores = null;
 
                         // sigar & AWS check
-                        if (selectedNodeInfo.nodes[selectedNodeId].os.cpu) {
-                            _total_cores = selectedNodeInfo.nodes[selectedNodeId].os.cpu.total_cores;
+                        if (selectedNodeInfo.nodes[selectedNodeId].os.available_processors) {
+                            _total_cores = selectedNodeInfo.nodes[selectedNodeId].os.allocated_processors;
                         } else {
                             _total_cores = 1;
                         }
 
                         // sigar & AWS check
                         if (stats_the_latest && stats_the_latest.node && stats_the_latest.node.process && stats_the_latest.node.process.cpu) {
+                          var process_cpu_pct = bigdesk_charts.processCPU_pct.series1(stats);
 
-                            var process_cpu_pct = bigdesk_charts.processCPU_pct.series1(stats);
+                          // TODO do not show this second series if total_cores value is unknown
+                          var process_cpu_max = process_cpu_pct.map(function(item) {
+                            return {
+                              timestamp: item.timestamp,
+                              value: ( 100 * _total_cores )
+                            }
+                          });
 
-                            // TODO do not show this second series if total_cores value is unknown
-                            var process_cpu_max = process_cpu_pct.map(function(item){
-                                return {
-                                    timestamp: item.timestamp,
-                                    value: ( 100 * _total_cores )
-                                }
-                            });
+                          try {
+                            chart_processCPU_pct.animate(animatedCharts).update(process_cpu_max);
+                          } catch (ignore) {}
 
-                            try { chart_processCPU_pct.animate(animatedCharts).update(process_cpu_pct, process_cpu_max); } catch (ignore) {}
-
-                            $("#process_cpu_pct_total").text((_total_cores * 100) + "%");
-                            $("#process_cpu_pct_process").text(stats_the_latest.node.process.cpu.percent + "%");
+                          $("#process_cpu_pct_total").text((_total_cores * 100) + "%");
+                          $("#process_cpu_pct_process").text(stats_the_latest.node.process.cpu.percent + "%");
                         } else {
                             chart_processCPU_pct = bigdesk_charts.not_available.chart(chart_processCPU_pct.svg());
                             $("#process_cpu_pct_total").text("n/a");
@@ -739,20 +739,16 @@ var SelectedClusterNodeView = Backbone.View.extend({
                         // sigar & AWS check
                         if (stats_the_latest && stats_the_latest.node && stats_the_latest.node.process && stats_the_latest.node.process.mem) {
 
-                            var process_mem_share = bigdesk_charts.processMem.series1(stats);
-                            var process_mem_resident = bigdesk_charts.processMem.series2(stats);
-                            var process_mem_total_virtual = bigdesk_charts.processMem.series3(stats);
+                            var process_mem_total_virtual_in_bytes = bigdesk_charts.processMem.series1(stats);
 
-                            try { chart_processMem.animate(animatedCharts).update(process_mem_share, process_mem_resident, process_mem_total_virtual); } catch (ignore) {}
+                            try {
+                              chart_processMem.animate(animatedCharts).update(process_mem_total_virtual_in_bytes);
+                            } catch (ignore) {}
 
                             $("#process_mem_total_virtual").text(stats_the_latest.node.process.mem.total_virtual);
-                            $("#process_mem_resident").text(stats_the_latest.node.process.mem.resident);
-                            $("#process_mem_share").text(stats_the_latest.node.process.mem.share);
                         } else {
                             chart_processMem = bigdesk_charts.not_available.chart(chart_processMem.svg());
                             $("#process_mem_total_virtual").text("n/a");
-                            $("#process_mem_resident").text("n/a");
-                            $("#process_mem_share").text("n/a");
                         }
                     });
 
@@ -798,107 +794,106 @@ var SelectedClusterNodeView = Backbone.View.extend({
 
                     _.defer(function(){
                         if (stats_the_latest && stats_the_latest.node && stats_the_latest.node.fs && stats_the_latest.node.fs.data && stats_the_latest.node.fs.data.length > 0) {
+                          var fs_section = $("#FileSystemSection");
+                          var _fs_data_info = $("#fs_data_info");
+                          _fs_data_info.empty();
 
-                            var fs_section = $("#FileSystemSection");
-                            var _fs_data_info = $("#fs_data_info");
-                            _fs_data_info.empty();
+                          var keys = _.keys(stats_the_latest.node.fs.data).sort();
+                          var ioStats = stats_the_latest.node.fs.io_stats;
 
-                            var keys = _.keys(stats_the_latest.node.fs.data).sort();
+                          if (keys.length > 0) {
+                            for (var i = 0; i < keys.length; i++) {
 
-                            if (keys.length > 0) {
-                                for (var i = 0; i < keys.length; i++) {
+                              var fs_data = stats_the_latest.node.fs.data[keys[i]];
+                              // we need to keep key value for mustache processing
+                              fs_data.key = [keys[i]];
+                              var _fd_element = $("#fd_data_"+keys[i]);
 
-                                    var fs_data = stats_the_latest.node.fs.data[keys[i]];
-                                    // we need to keep key value for mustache processing
-                                    fs_data.key = [keys[i]];
-                                    var _fd_element = $("#fd_data_"+keys[i]);
+                              if (_fd_element.length == 0) {
 
-                                    if (_fd_element.length == 0) {
+                                // render the row
+                                var fsInfo = Mustache.render(templates.selectedClusterNode.fsDataInfoTemplate, fs_data);
+                                var fsInfo_cnt = Mustache.render(templates.selectedClusterNode.fsDataInfo_cntTemplate, fs_data);
+                                var fsInfo_size = Mustache.render(templates.selectedClusterNode.fsDataInfo_sizeTemplate, fs_data);
 
-                                        // render the row
-                                        var fsInfo = Mustache.render(templates.selectedClusterNode.fsDataInfoTemplate, fs_data);
-                                        var fsInfo_cnt = Mustache.render(templates.selectedClusterNode.fsDataInfo_cntTemplate, fs_data);
-                                        var fsInfo_size = Mustache.render(templates.selectedClusterNode.fsDataInfo_sizeTemplate, fs_data);
+                                var fsp_data = _view.make("p", {}, fsInfo);
+                                var fsp_charts = _view.make("p", {},
+                                  "<div style='overflow: auto;'>" +
+                                      "<svg width='100%' height='160'>" +
+                                          "<svg id='svg_fsChart_cnt_"+keys[i]+"' clip_id='clip_fsChart_cnt_"+keys[i]+"' width='46.5%' height='100%' x='0' y='0' preserveAspectRatio='xMinYMid' viewBox='0 0 270 160'/>" +
+                                          "<svg id='svg_fsChart_size_"+keys[i]+"' clip_id='clip_fsChart_size_"+keys[i]+"' width='46.5%' height='100%' x='54%' y='0' preserveAspectRatio='xMinYMid' viewBox='0 0 270 160'/>" +
+                                      "</svg>" +
+                                      "<div width='46.5%' style='margin-left: 0%; float: left;'>" + fsInfo_cnt + "</div>" +
+                                      "<div width='46.5%' style='margin-left: 54%;'>" + fsInfo_size + "</div>" +
+                                  "</div>"
+                                );
 
-                                        var fsp_data = _view.make("p", {}, fsInfo);
-                                        var fsp_charts = _view.make("p", {},
-                                            "<div style='overflow: auto;'>" +
-                                                "<svg width='100%' height='160'>" +
-                                                    "<svg id='svg_fsChart_cnt_"+keys[i]+"' clip_id='clip_fsChart_cnt_"+keys[i]+"' width='46.5%' height='100%' x='0' y='0' preserveAspectRatio='xMinYMid' viewBox='0 0 270 160'/>" +
-                                                    "<svg id='svg_fsChart_size_"+keys[i]+"' clip_id='clip_fsChart_size_"+keys[i]+"' width='46.5%' height='100%' x='54%' y='0' preserveAspectRatio='xMinYMid' viewBox='0 0 270 160'/>" +
-                                                "</svg>" +
-                                                "<div width='46.5%' style='margin-left: 0%; float: left;'>" + fsInfo_cnt + "</div>" +
-                                                "<div width='46.5%' style='margin-left: 54%;'>" + fsInfo_size + "</div>" +
-                                            "</div>"
-                                        );
+                                var fsCol_data = _view.make("div", {"class":"sixcol"});
+                                var fsCol_charts = _view.make("div", {"class":"sixcol last"});
 
-                                        var fsCol_data = _view.make("div", {"class":"sixcol"});
-                                        var fsCol_charts = _view.make("div", {"class":"sixcol last"});
+                                var rowFsInfo = _view.make("div", {"class":"row nodeDetail", "id":"fd_data_" + keys[i]});
 
-                                        var rowFsInfo = _view.make("div", {"class":"row nodeDetail", "id":"fd_data_" + keys[i]});
+                                $(rowFsInfo).append(fsCol_data, fsCol_charts);
+                                $(fsCol_data).append(fsp_data);
+                                $(fsCol_charts).append(fsp_charts);
 
-                                        $(rowFsInfo).append(fsCol_data, fsCol_charts);
-                                        $(fsCol_data).append(fsp_data);
-                                        $(fsCol_charts).append(fsp_charts);
+                                fs_section.after(rowFsInfo);
 
-                                        fs_section.after(rowFsInfo);
+                                charts_disk_reads_writes_cnt[keys[i]] = bigdesk_charts.disk_reads_writes_cnt.chart(d3.select("#svg_fsChart_cnt_"+keys[i]));
+                                charts_disk_reads_writes_size[keys[i]] = bigdesk_charts.disk_reads_writes_size.chart(d3.select("#svg_fsChart_size_"+keys[i]));
+                              }
 
-                                        charts_disk_reads_writes_cnt[keys[i]] = bigdesk_charts.disk_reads_writes_cnt.chart(d3.select("#svg_fsChart_cnt_"+keys[i]));
-                                        charts_disk_reads_writes_size[keys[i]] = bigdesk_charts.disk_reads_writes_size.chart(d3.select("#svg_fsChart_size_"+keys[i]));
-                                    }
+                              $("#fs_disk_free_"+keys[i]).text(fs_data.free);
+                              $("#fs_disk_available_"+keys[i]).text(fs_data.available);
 
-                                    $("#fs_disk_free_"+keys[i]).text(fs_data.free);
-                                    $("#fs_disk_available_"+keys[i]).text(fs_data.available);
+                              // sigar & AWS check
+                              if (fs_data.disk_writes != undefined && fs_data.disk_reads != undefined) {
+                                var read_cnt_delta = bigdesk_charts.disk_reads_writes_cnt.series1(stats, keys[i]);
+                                var write_cnt_delta = bigdesk_charts.disk_reads_writes_cnt.series2(stats, keys[i]);
 
-                                    // sigar & AWS check
-                                    if (fs_data.disk_writes != undefined && fs_data.disk_reads != undefined) {
-                                        var read_cnt_delta = bigdesk_charts.disk_reads_writes_cnt.series1(stats, keys[i]);
-                                        var write_cnt_delta = bigdesk_charts.disk_reads_writes_cnt.series2(stats, keys[i]);
+                                if ( read_cnt_delta.length > 1 && write_cnt_delta.length > 1 ) {
 
-                                        if ( read_cnt_delta.length > 1 && write_cnt_delta.length > 1 ) {
+                                  // delta(read_cnt_delta);
+                                  // delta(write_cnt_delta);
+                                  normalizedDeltaToSeconds(read_cnt_delta);
+                                  normalizedDeltaToSeconds(write_cnt_delta);
 
-    //                                        delta(read_cnt_delta);
-    //                                        delta(write_cnt_delta);
-                                            normalizedDeltaToSeconds(read_cnt_delta);
-                                            normalizedDeltaToSeconds(write_cnt_delta);
-
-                                            try { charts_disk_reads_writes_cnt[keys[i]].animate(animatedCharts).update(read_cnt_delta, write_cnt_delta); } catch (ignore) {}
-                                        }
-
-                                        $("#fs_disk_writes_"+keys[i]).text(fs_data.disk_writes);
-                                        $("#fs_disk_reads_"+keys[i]).text(fs_data.disk_reads);
-                                    } else {
-                                        charts_disk_reads_writes_cnt[keys[i]] = bigdesk_charts.not_available.chart(charts_disk_reads_writes_cnt[keys[i]].svg());
-                                        $("#fs_disk_writes_"+keys[i]).text("n/a");
-                                        $("#fs_disk_reads_"+keys[i]).text("n/a");
-                                    }
-
-                                    // sigar & AWS check
-                                    if (fs_data.disk_write_size && fs_data.disk_read_size) {
-                                        var read_size_delta = bigdesk_charts.disk_reads_writes_size.series1(stats, keys[i]);
-                                        var write_size_delta = bigdesk_charts.disk_reads_writes_size.series2(stats, keys[i]);
-
-                                        if ( read_size_delta.length > 1 && write_size_delta.length > 1 ) {
-
-    //                                        delta(read_size_delta);
-    //                                        delta(write_size_delta);
-                                            normalizedDeltaToSeconds(read_size_delta);
-                                            normalizedDeltaToSeconds(write_size_delta);
-
-                                            try { charts_disk_reads_writes_size[keys[i]].animate(animatedCharts).update(read_size_delta, write_size_delta); } catch (ignore) {}
-                                        }
-
-                                        $("#fs_disk_write_size_"+keys[i]).text(fs_data.disk_write_size);
-                                        $("#fs_disk_read_size_"+keys[i]).text(fs_data.disk_read_size);
-                                    } else {
-                                        charts_disk_reads_writes_size[keys[i]] = bigdesk_charts.not_available.chart(charts_disk_reads_writes_size[keys[i]].svg());
-                                        $("#fs_disk_write_size_"+keys[i]).text("n/a");
-                                        $("#fs_disk_read_size_"+keys[i]).text("n/a");
-                                    }
+                                  try { charts_disk_reads_writes_cnt[keys[i]].animate(animatedCharts).update(read_cnt_delta, write_cnt_delta); } catch (ignore) {}
                                 }
-                            } else {
-                                // delete all fs info
+
+                                $("#fs_disk_writes_"+keys[i]).text(fs_data.disk_writes);
+                                $("#fs_disk_reads_"+keys[i]).text(fs_data.disk_reads);
+                              } else {
+                                charts_disk_reads_writes_cnt[keys[i]] = bigdesk_charts.not_available.chart(charts_disk_reads_writes_cnt[keys[i]].svg());
+                                $("#fs_disk_writes_"+keys[i]).text("n/a");
+                                $("#fs_disk_reads_"+keys[i]).text("n/a");
+                              }
+
+                              // sigar & AWS check
+                              if (io_stats.total.write_kilobytes && io_stats.total.read_kilobytes) {
+                                var read_size_delta = bigdesk_charts.disk_reads_writes_size.series1(stats, keys[i]);
+                                var write_size_delta = bigdesk_charts.disk_reads_writes_size.series2(stats, keys[i]);
+
+                                if ( read_size_delta.length > 1 && write_size_delta.length > 1 ) {
+                                  // delta(read_size_delta);
+                                  // delta(write_size_delta);
+                                  normalizedDeltaToSeconds(read_size_delta);
+                                  normalizedDeltaToSeconds(write_size_delta);
+
+                                  try { charts_disk_reads_writes_size[keys[i]].animate(animatedCharts).update(read_size_delta, write_size_delta); } catch (ignore) {}
+                                }
+
+                                $("#fs_disk_write_size_"+keys[i]).text(fs_data.disk_write_size);
+                                $("#fs_disk_read_size_"+keys[i]).text(fs_data.disk_read_size);
+                              } else {
+                                charts_disk_reads_writes_size[keys[i]] = bigdesk_charts.not_available.chart(charts_disk_reads_writes_size[keys[i]].svg());
+                                $("#fs_disk_write_size_"+keys[i]).text("n/a");
+                                $("#fs_disk_read_size_"+keys[i]).text("n/a");
+                              }
                             }
+                          } else {
+                              // delete all fs info
+                          }
                         } else {
                             $("#fs_data_info").text("No data info available");
                         }

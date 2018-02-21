@@ -22,30 +22,30 @@
 var NodeStats = Backbone.Model;
 
 var NodeStatsCollection = Backbone.Collection.extend({
-    model: NodeStats
+  model: NodeStats
 });
 
 var NodeStatsTimestamp = Backbone.Model.extend({
     initialize: function(attributes){
-        var nodes = attributes.nodes;
-        var nodeIds = _.keys(nodes);
-        var nodeValues = _.values(nodes);
-        for (var i = 0; i < nodeIds.length; i++) {
-            nodeValues[i].id = nodeIds[i];
-        }
-        this.set({nodes: new NodeStatsCollection(nodeValues)});
-        this.set("id", new Date().getTime());
+      var nodes = attributes.nodes;
+      var nodeIds = _.keys(nodes);
+      var nodeValues = _.values(nodes);
+      for (var i = 0; i < nodeIds.length; i++) {
+        nodeValues[i].id = nodeIds[i];
+      }
+      this.set({nodes: new NodeStatsCollection(nodeValues)});
+      this.set("id", new Date().getTime());
     }
 });
 
 var NodesStats = Backbone.Collection.extend({
     model: NodeStatsTimestamp,
     url: function() {
-        return '/_nodes/stats?human=true';
+      return '/_nodes/stats?human=true';
     },
     parse: function(response) {
-        delete response.cluster_name;
-        return response;
+      delete response.cluster_name;
+      return response;
     },
 
     // Here comes the backbone hack:

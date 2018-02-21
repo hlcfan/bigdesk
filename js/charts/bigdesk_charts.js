@@ -52,6 +52,14 @@ bigdesk_charts.fileDescriptors = {
                 value: +snapshot.node.process.open_file_descriptors
             }
         })
+    },
+    series2: function(stats) {
+        return stats.map(function(snapshot){
+            return {
+                timestamp: +snapshot.node.process.timestamp,
+                value: +snapshot.node.process.max_file_descriptors
+            }
+        })
     }
 };
 
@@ -430,21 +438,12 @@ bigdesk_charts.osCpu = {
         return stats.map(function(snapshot){
             return {
                 timestamp: +snapshot.node.os.timestamp,
-                value: +snapshot.node.os.cpu.sys
+                value: snapshot.node.os.cpu.percent
             }
         })
     },
 
     series2: function(stats) {
-        return stats.map(function(snapshot){
-            return {
-                timestamp: +snapshot.node.os.timestamp,
-                value: (+snapshot.node.os.cpu.user + +snapshot.node.os.cpu.sys)
-            }
-        })
-    },
-
-    series3: function(stats) {
         return stats.map(function(snapshot){
             return {
                 timestamp: +snapshot.node.os.timestamp,
@@ -473,7 +472,7 @@ bigdesk_charts.osMem = {
         return  stats.map(function(snapshot){
             return {
                 timestamp: +snapshot.node.os.timestamp,
-                value: +snapshot.node.os.mem.actual_used_in_bytes
+                value: +snapshot.node.os.mem.used_in_bytes
             }
         })
     },
@@ -482,7 +481,7 @@ bigdesk_charts.osMem = {
         return stats.map(function(snapshot){
             return {
                 timestamp: +snapshot.node.os.timestamp,
-                value: ((+snapshot.node.os.mem.actual_free_in_bytes) + (+snapshot.node.os.mem.actual_used_in_bytes))
+                value: snapshot.node.os.mem.total_in_bytes
             }
         })
     }
@@ -535,9 +534,9 @@ bigdesk_charts.osLoadAvg = {
             .width(bigdesk_charts.default.width).height(bigdesk_charts.default.height)
             .legend({
                 caption: "Load Average",
-                series1: "0",
-                series2: "1",
-                series3: "2",
+                series1: "1m",
+                series2: "5m",
+                series3: "15m",
                 margin_left: 5,
                 margin_bottom: 6,
                 width: 40})
@@ -545,30 +544,33 @@ bigdesk_charts.osLoadAvg = {
     },
 
     series1: function(stats) {
-        return stats.map(function(snapshot){
-            return {
-                timestamp: +snapshot.node.os.timestamp,
-                value: + snapshot.node.os.load_average["0"]
-            }
-        })
+      return stats.map(function(snapshot) {
+        var key = Object.keys(snapshot.node.os.cpu.load_average)[0]
+        return {
+          timestamp: +snapshot.node.os.timestamp,
+          value: + snapshot.node.os.cpu.load_average[key]
+        }
+      })
     },
 
     series2: function(stats) {
-        return stats.map(function(snapshot){
-            return {
-                timestamp: +snapshot.node.os.timestamp,
-                value: + snapshot.node.os.load_average["1"]
-            }
-        })
+      return stats.map(function(snapshot) {
+        var key = Object.keys(snapshot.node.os.cpu.load_average)[1]
+        return {
+          timestamp: +snapshot.node.os.timestamp,
+          value: + snapshot.node.os.cpu.load_average[key]
+        }
+      })
     },
 
     series3: function(stats) {
-        return stats.map(function(snapshot){
-            return {
-                timestamp: +snapshot.node.os.timestamp,
-                value: + snapshot.node.os.load_average["2"]
-            }
-        })
+      return stats.map(function(snapshot) {
+        var key = Object.keys(snapshot.node.os.cpu.load_average)[2]
+        return {
+          timestamp: +snapshot.node.os.timestamp,
+          value: + snapshot.node.os.cpu.load_average[key]
+        }
+      })
     }
 };
 
@@ -824,7 +826,7 @@ bigdesk_charts.indicesCacheSize = {
         return stats.map(function(snapshot){
             return {
                 timestamp: +snapshot.id,
-                value: +snapshot.node.indices.filter_cache.memory_size_in_bytes
+                value: +snapshot.node.indices.query_cache.memory_size_in_bytes
             }
         })
     },
@@ -833,7 +835,9 @@ bigdesk_charts.indicesCacheSize = {
 		return stats.map(function(snapshot){
 			return {
 				timestamp: +snapshot.id,
-				value: +snapshot.node.indices.id_cache.memory_size_in_bytes
+        // Deprecation
+        // https://www.elastic.co/guide/en/elasticsearch/reference/2.3/breaking_20_stats_info_and_literal_cat_literal_changes.html
+				value: +snapshot.node.indices.fielddata.memory_size_in_bytes
 			}
 		})
 	}
@@ -855,7 +859,7 @@ bigdesk_charts.indicesCacheEvictions = {
     },
 
     series1: function(stats) {
-        return stats.map(function(snapshot){
+        return stats.map(function(snapshot) {
             return {
                 timestamp: +snapshot.id,
                 value: +snapshot.node.indices.fielddata.evictions
@@ -867,7 +871,7 @@ bigdesk_charts.indicesCacheEvictions = {
         return stats.map(function(snapshot){
             return {
                 timestamp: +snapshot.id,
-                value: +snapshot.node.indices.filter_cache.evictions
+                value: +snapshot.node.indices.query_cache.evictions
             }
         })
     }
@@ -880,8 +884,7 @@ bigdesk_charts.processCPU_time = {
             .width(bigdesk_charts.default.width).height(bigdesk_charts.default.height)
             .legend({
                 caption: "CPU time (Δ)",
-                series1: "User",
-                series2: "Sys",
+                series1: "Total",
                 margin_left: 5,
                 margin_bottom: 6,
                 width: 45})
@@ -892,16 +895,7 @@ bigdesk_charts.processCPU_time = {
         return stats.map(function(snapshot){
             return {
                 timestamp: +snapshot.node.process.timestamp,
-                value: +snapshot.node.process.cpu.user_in_millis
-            }
-        })
-    },
-
-    series2: function(stats) {
-        return stats.map(function(snapshot){
-            return {
-                timestamp: +snapshot.node.process.timestamp,
-                value: +snapshot.node.process.cpu.sys_in_millis
+                value: +snapshot.node.process.cpu.total_in_millis
             }
         })
     }
@@ -923,7 +917,7 @@ bigdesk_charts.processCPU_pct = {
     },
 
     series1: function(stats) {
-        return stats.map(function(snapshot){
+        return stats.map(function(snapshot) {
             return {
                 timestamp: +snapshot.node.process.timestamp,
                 value: +snapshot.node.process.cpu.percent
@@ -940,35 +934,14 @@ bigdesk_charts.processMem = {
             .width(bigdesk_charts.default.width).height(bigdesk_charts.default.height)
             .legend({
                 caption: "Mem",
-                series1: "share",
-                series2: "resident",
-                series3: "total virtual",
+                series1: "total virtual",
                 margin_left: 5,
                 margin_bottom: 6,
                 width: 100})
             .svg(element);
     },
-
     series1: function(stats) {
-        return stats.map(function(snapshot){
-            return {
-                timestamp: +snapshot.node.process.timestamp,
-                value: +snapshot.node.process.mem.share_in_bytes
-            }
-        })
-    },
-
-    series2: function(stats) {
-        return stats.map(function(snapshot){
-            return {
-                timestamp: +snapshot.node.process.timestamp,
-                value: +snapshot.node.process.mem.resident_in_bytes
-            }
-        })
-    },
-
-    series3: function(stats) {
-        return stats.map(function(snapshot){
+        return stats.map(function(snapshot) {
             return {
                 timestamp: +snapshot.node.process.timestamp,
                 value: +snapshot.node.process.mem.total_virtual_in_bytes
@@ -1064,7 +1037,7 @@ bigdesk_charts.disk_reads_writes_size = {
         return stats.map(function(snapshot){
             return {
                 timestamp: +snapshot.node.fs.timestamp,
-                value: +snapshot.node.fs.data[fs_key].disk_read_size_in_bytes
+                value: +snapshot.node.fs.io_stats.total.read_kilobytes;
             }
         })
     },
@@ -1073,7 +1046,7 @@ bigdesk_charts.disk_reads_writes_size = {
         return stats.map(function(snapshot){
             return {
                 timestamp: +snapshot.node.fs.timestamp,
-                value: +snapshot.node.fs.data[fs_key].disk_write_size_in_bytes
+                value: +snapshot.node.fs.io_stats.total.write_kilobytes;
             }
         })
     }
